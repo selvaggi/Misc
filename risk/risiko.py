@@ -550,7 +550,7 @@ def fightDistribution(n, na, nd):
 
 ##__________ produce single-shot plots ___________###
 
-
+'''
 n=10000
 
 plot(n, 3, 3, False, False)
@@ -584,13 +584,13 @@ plot(n, 1, 1, False, True) #Mar
 quants = [2]
 matrices = computeMatricesMT(5000, 100, quants)
 data = matrices[2]
-np.savez_compressed('plots/data.npz', data=data)
+np.savez_compressed('data/data.npz', data=data)
 '''
 
 ##__________ load pre-computed matrix __________________
 
 '''
-loaded = np.load('plots/data.npz')
+loaded = np.load('data/data.npz')
 data = loaded['data']
 produceSlicePlot(data)
 '''
@@ -616,7 +616,7 @@ except:
 
 #__________________________________________________________________
 
-'''listFights = [
+listFights = [
 (3,1),
 (5,2),
 (6,2),
@@ -636,37 +636,3 @@ except:
 
 for f in listFights:
     fightDistribution(10000, f[0], f[1])
-'''
-
-'''
-(na,nd)
-
-
-
-(1,nd)
-(1,nd-1)
-...
-(1,0)
-(2,0)
-...
-(na,0)
-'''
-
-
-#print matrices
-
-#for q in quants:
-#    produceMatrixPlot(matrices[q], q)
-
-'''
-n = 1000000
-seq = compute_sequence(n, 1, 1, False, False)
-#print seq
-
-freq0 = frequency(seq,0)
-freq1 = frequency(seq,1)
-freq2 = frequency(seq,2)
-freq3 = frequency(seq,3)
-
-print freq0, freq1, freq2, freq3
-'''
