@@ -9,7 +9,7 @@ from matplotlib.colors import BoundaryNorm
 import multiprocessing as mp
 
 
-random.seed(40)
+#random.seed(40)
 
 #_______________________________________
 def frequency(a, x):
@@ -57,9 +57,17 @@ def gen_losses(attack, defence, opt_gen=False, opt_mar=False):
     n_dice = len(attack)
     n_lost_a = 0
     n_lost_d = 0
+
+    opt_alive = True
+
+    #print 'attack', attack
+    #print 'defence', defence
+    #print 'gen,mar', opt_gen, opt_mar
+    #print 'alive', opt_alive
+
     #print len(defence)
     for i in range(n_dice):
-        #print i, len(defence)
+        #print i
         if i < len(defence):
             #print i, attack[i], defence[i]
 
@@ -68,14 +76,20 @@ def gen_losses(attack, defence, opt_gen=False, opt_mar=False):
 
             if opt_gen and i==0:
                 att += 1
+                if att <= dif:
+                    #print 'here'
+                    opt_alive = False
             if opt_mar and i==0:
                 dif += 1
+                if att > dif:
+                    opt_alive = False
 
+            #print 'att, diff', att, dif
             if att > dif:
                 n_lost_d += 1
             else:
                 n_lost_a += 1
-    return (n_lost_a, n_lost_d)
+    return (n_lost_a, n_lost_d), opt_alive
 
 '''attack = roll(3)
 defence = roll(2)
@@ -169,7 +183,15 @@ def read_probabilities(na, nd):
     return probs
 
 #______________ compute probabilites _____________
-def simulate_attack(na, nd):
+def simulate_attack(na, nd, opt):
+
+    opt_gen = False
+    opt_mar = False
+
+    if opt == 'gen':
+        opt_gen = True
+    if opt == 'mar':
+        opt_mar = True
 
     n_disp_att = na - 1
     n_disp_def = nd
@@ -178,6 +200,7 @@ def simulate_attack(na, nd):
     natt=-1
     ndef=-1
 
+    opt_alive = True
     while (n_disp_att>0 and n_disp_def>0):
 
         #print ' --- new round --- '
@@ -196,12 +219,22 @@ def simulate_attack(na, nd):
             ndef=n_disp_def
 
         # simulate fight
-        #readProba = True
+        # readProba = True
         readProba = False
+
+        # this means that at least one fight has been done, and we can update
+        # state of marshall/general
+        if 'losses' in locals():
+            opt_alive = losses[1]
+            if opt_gen:
+                opt_gen = False
+            if opt_mar:
+                opt_mar = False
+
         if not readProba:
             attack = roll(natt)
             defence = roll(ndef)
-            losses = gen_losses(attack, defence, False, False)
+            losses = gen_losses(attack, defence, opt_gen, opt_mar)
 
         else:
             ps = read_probabilities(natt, ndef)
@@ -215,7 +248,7 @@ def simulate_attack(na, nd):
             plist = [0]*p0 + [1]*p1 + [2]*p2 + [3]*p3
             def_lost = random.choice(plist)
             att_lost = natt - def_lost
-            losses = (att_lost, def_lost)
+            losses = ((att_lost, def_lost),True)
 
         #print 'attacker has ', n_disp_att+1, 'and attacks with', natt
         #print 'defender has ', n_disp_def, 'and defends with', ndef
@@ -225,8 +258,9 @@ def simulate_attack(na, nd):
 
         #print 'lost:', gen_losses(attack, defence, False, False)[0], gen_losses(attack, defence, False, False)[1]
 
-        n_disp_att -= losses[0]
-        n_disp_def -= losses[1]
+        #print 'losses', losses
+        n_disp_att -= losses[0][0]
+        n_disp_def -= losses[0][1]
 
         #print 'left for next round:', n_disp_att, n_disp_def
 
@@ -275,17 +309,17 @@ def plot(n, na, nd, opt_gen, opt_mar):
 
 
 #__________________________
-def computeFrequencies(n, na, nd, quants):
+def computeFrequencies(n, na, nd, quants, opt):
     xa = []
     ya = []
 
     # define frequencies for various quantiles
     freqs = dict()
-
     # "quantile" is defined by how many tanks left to the attacker (min 2)
 
+
     for i in range(n):
-        pair = simulate_attack(na,nd)
+        pair = simulate_attack(na,nd,opt)
         xa.append(pair[0])
         ya.append(pair[1])
 
@@ -300,7 +334,7 @@ def computeFrequencies(n, na, nd, quants):
 
 
 #________________________________________________________________`
-def computeMatrices(n, nmax, quants):
+def computeMatrices(n, nmax, quants, opt):
 
     z = dict()
     for q in quants:
@@ -310,7 +344,7 @@ def computeMatrices(n, nmax, quants):
     for j in range(1,nmax+1):
         # attacks
         for i in range(1,nmax+1):
-            freqs = computeFrequencies(n, i, j, quants)
+            freqs = computeFrequencies(n, i, j, quants, opt)
             for q in quants:
                 z[q][i-1,j-1] = freqs[q]
 
@@ -320,15 +354,15 @@ def computeMatrices(n, nmax, quants):
 
 
 #_____________________________________________________________________________________________________
-def runMT_pool(args=('','','','')):
-    n, i, j, quants=args
+def runMT_pool(args=('','','','','')):
+    n, i, j, quants, opt=args
     print "running (i,j): {},{}".format(i,j)
-    freqs = computeFrequencies(n, i, j, quants)
+    freqs = computeFrequencies(n, i, j, quants, opt)
     return ((i, j), freqs)
 
 #________________________________________________________________`
-def computeMatricesMT(n, nmax, quants):
-    print 'NUMBER OF CORES    ',mp.cpu_count()
+def computeMatricesMT(n, nmax, quants, opt):
+    print 'NUMBER OF CORES    ', mp.cpu_count()
     print ''
 
     z = dict()
@@ -341,9 +375,8 @@ def computeMatricesMT(n, nmax, quants):
     for j in range(1,nmax+1):
         # attacks
         for i in range(1,nmax+1):
-            thread = (n, i, j, quants)
+            thread = (n, i, j, quants, opt)
             threads.append(thread)
-
 
     pool = mp.Pool(mp.cpu_count())
     jobs = pool.map(runMT_pool,threads)
@@ -390,7 +423,7 @@ def produceMatrixPlot(z, q):
 
 
 #__________________________________________________________
-def produceSlicePlot(data):
+def produceSlicePlot(data, name):
 
     #print data
 
@@ -441,7 +474,7 @@ def produceSlicePlot(data):
 
     fig.tight_layout()
     #fig.show()
-    fig.savefig('plots/slices.png')
+    fig.savefig('plots/{}.png'.format(name))
 
 ###_________________________________________________________________
 def fightDistribution(n, na, nd):
@@ -587,13 +620,53 @@ data = matrices[2]
 np.savez_compressed('data/data.npz', data=data)
 '''
 
-##__________ load pre-computed matrix __________________
+'''
+na = 3
+nd = 3
+attack = roll(na)
+defence = roll(nd)
+
+opt_alive= True
+losses = gen_losses(attack, defence, opt_gen=False, opt_mar=True, opt_alive=opt_alive)
+'''
+
+'''simulate_attack(14,4,'gen')
+
+quants = [8]
+freqs = computeFrequencies(1000, 14, 4, quants, '')
+print freqs
+freqs = computeFrequencies(1000, 14, 4, quants, 'gen')
+print freqs
+freqs = computeFrequencies(1000, 14, 4, quants, 'mar')
+print freqs
+'''
 
 '''
+quants = [2]
+matrices_gen = computeMatricesMT(5000, 100, quants, 'gen')
+data = matrices_gen[2]
+np.savez_compressed('data/data_gen.npz', data=data)
+
+
+matrices_mar = computeMatricesMT(5000, 100, quants, 'mar')
+data = matrices_mar[2]
+np.savez_compressed('data/data_mar.npz', data=data)
+'''
+
+##__________ load pre-computed matrix __________________
+
+#loaded = np.load('data/data.npz')
 loaded = np.load('data/data.npz')
 data = loaded['data']
-produceSlicePlot(data)
-'''
+produceSlicePlot(data, 'slices_def')
+
+loaded = np.load('data/data_gen.npz')
+data = loaded['data']
+produceSlicePlot(data, 'slices_gen')
+
+loaded = np.load('data/data_mar.npz')
+data = loaded['data']
+produceSlicePlot(data, 'slices_mar')
 
 ##__________ produce matrix plots __________________
 
@@ -601,7 +674,7 @@ produceSlicePlot(data)
 #for q in quants:
 #    produceMatrixPlot(matrices[q], q)
 
-#produceMatrixPlot(data, 2)
+#$produceMatrixPlot(data, 2)
 
 
 ##_________ produce fight distribution ___________
@@ -615,7 +688,7 @@ except:
 '''
 
 #__________________________________________________________________
-
+'''
 listFights = [
 (3,1),
 (5,2),
@@ -636,3 +709,4 @@ listFights = [
 
 for f in listFights:
     fightDistribution(10000, f[0], f[1])
+'''
