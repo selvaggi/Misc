@@ -49,7 +49,7 @@ Double_t langaufun(Double_t *x, Double_t *par) {
 
    // Convolution integral of Landau and Gaussian by sum
    for(i=1.0; i<=np/2; i++) {
-      
+
       xx = xlow + (i-.5) * step;
       fland = TMath::Landau(xx,mpc,par[0]) / par[0];
       sum += fland * TMath::Gaus(x[0],xx,par[3]);
@@ -69,16 +69,16 @@ Double_t deltaf(double c0, double a, double m, double x0, double x1, double beta
 {
    Double_t x= TMath::Log10(beta*gamma);
    Double_t delta = 0.;
-   
+
    //cout<<x<<","<<x0<<","<<x1<<","<<endl;
-   
+
    if (x < x0)
        delta = 0.;
    if (x >= x0 && x< x1)
        delta = 4.6052*x - c0 + a*TMath::Power(x1 - x,m);
    if  (x> x1)
        delta = 4.6052*x - c0;
-       
+
    return delta;
 }
 
@@ -96,26 +96,36 @@ Double_t Chi(double beta, double gamma, double charge, double x, double A, doubl
 Double_t deltaP(double beta, double gamma, double charge, double x, double A, double Z, double rho, double I, double c0, double a, double m, double x0, double x1)
 {
   Double_t chi = Chi(beta, gamma, charge, x, A, Z, rho);
-  Double_t me = 0.510998; // electron mass in MeV, need  
+  Double_t me = 0.510998; // electron mass in MeV, need
   I *= 1e-6; // convert I in MeV
   Double_t Wmax = 2*me*beta*beta*gamma*gamma; // this is not valid for electrons
   Double_t delta = deltaf(c0, a, m, x0, x1, beta, gamma);
- 
-  //Double_t DeDx= chi*( 2*TMath::Log(Wmax/I) - 2*beta*beta - delta);  
-  Double_t DeDx = 2*chi*( TMath::Log(Wmax/I) - beta*beta - delta/2);  
-  Double_t dP = chi*( TMath::Log(Wmax/I) + TMath::Log(chi/I) + 0.2 - beta*beta - delta);  
-       
+
+  //Double_t DeDx= chi*( 2*TMath::Log(Wmax/I) - 2*beta*beta - delta);
+  Double_t DeDx = 2*chi*( TMath::Log(Wmax/I) - beta*beta - delta/2);
+  Double_t dP = chi*( TMath::Log(Wmax/I) + TMath::Log(chi/I) + 0.2 - beta*beta - delta);
+
   return dP;
 }
 
+//---------------------------------------------------------------
+
+Double_t truncMean(std::vector<Double_t> elosses, Double_t truncFrac)
+{
+     Int_t new_size = Int_t( elosses.size() * (1 - truncFrac));
+
+     // remove outliers and re-compute mean
+     elosses.resize(new_size);
+     return accumulate( elosses.begin(), elosses.end(), 0.0)/elosses.size();
+}
 //------------------------------------------------------------------------------
 
 void dedx()
 {
-  TH1F *hEnergyLoss = new TH1F("energy_loss", "energy_loss", 100, 0.0, 10.0);
-  TH1F *hEnergyLoss2 = new TH1F("energy_loss2", "energy_loss2", 100, 0.0, 10.0);
-  TH1F *hEnergyLoss3 = new TH1F("energy_loss3", "energy_loss3", 100, 0.0, 10.0);
-  TH1F *hEnergyLoss4 = new TH1F("energy_loss4", "energy_loss4", 100, 0.0, 10.0);
+  TH1F *hEnergyLoss = new TH1F("energy_loss", "energy_loss", 500, 0.0, 10.0);
+  TH1F *hEnergyLoss2 = new TH1F("energy_loss2", "energy_loss2", 500, 0.0, 10.0);
+  TH1F *hEnergyLoss3 = new TH1F("energy_loss3", "energy_loss3", 500, 0.0, 10.0);
+  TH1F *hEnergyLoss4 = new TH1F("energy_loss4", "energy_loss4", 500, 0.0, 10.0);
 
   //mpv is the predicted <dEdx> from Bethe-Bloch
   Double_t mpv = 1.2;
@@ -126,32 +136,32 @@ void dedx()
   //Double_t mass = 0.139570; //139 MeV
   Double_t mass = 0.10565839; //139 MeV
 
-  Double_t energy = 10.+mass; 
-  Double_t p = TMath::Sqrt(energy*energy - mass*mass); 
+  Double_t energy = 10.+mass;
+  Double_t p = TMath::Sqrt(energy*energy - mass*mass);
   Double_t charge = 1;
-    
+
   pvec.SetPtEtaPhiM(p,0.,0.,mass);
   Double_t beta = pvec.Beta();
   Double_t gamma = pvec.Gamma();
   mass = pvec.M();
-   
+
   // print particle properties
-  cout<<"E: "<<pvec.E()<<", P: "<<pvec.P()<<", Pt: "<<pvec.Pt()<<", M: "<<pvec.M()<<", Beta: "<< pvec.Beta()<<", Gamma: "<<pvec.Gamma() <<", Charge: "<<charge<<endl;   
-  
+  cout<<"E: "<<pvec.E()<<", P: "<<pvec.P()<<", Pt: "<<pvec.Pt()<<", M: "<<pvec.M()<<", Beta: "<< pvec.Beta()<<", Gamma: "<<pvec.Gamma() <<", Charge: "<<charge<<endl;
+
 
 /*
 Index =   14:  silicon (Si)
      Absorber with Z =  14,  A = 28.0855(3), density = 2.329 (revised)
- Sternheimer coef:  a     k=m_s   x_0    x_1    I[eV]   Cbar  delta0 
+ Sternheimer coef:  a     k=m_s   x_0    x_1    I[eV]   Cbar  delta0
                  0.1492  3.2546  0.2015  2.8716  173.0  4.4355 0.14
 */
 
 
   // --   silicon properties ---
   //------------------------------
-    
+
   // generic properties
-  Double_t Z      = 14.; 
+  Double_t Z      = 14.;
   Double_t A      = 28.0855; // in g/mol
   Double_t rho    = 2.329; // in g/cm3
 
@@ -162,11 +172,11 @@ Index =   14:  silicon (Si)
   Double_t x1     = 2.8716;
   Double_t I      = 173.0; // mean excitation potential in (eV)
   Double_t c0     = 4.4355;
-  
+
   /*
 
-     Absorber with Z =  18,  A = 39.948(1), density = $ 1.662 \times10^{- 3}$          
- Sternheimer coef:  a     k=m_s   x_0    x_1    I[eV]   Cbar  delta0 
+     Absorber with Z =  18,  A = 39.948(1), density = $ 1.662 \times10^{- 3}$
+ Sternheimer coef:  a     k=m_s   x_0    x_1    I[eV]   Cbar  delta0
                  0.1971  2.9618  1.7635  4.4855  188.0 11.9480 0.00
 
 
@@ -185,27 +195,31 @@ Index =   14:  silicon (Si)
   Double_t x1     = 4.4855;
   Double_t I      = 188.0;
   Double_t c0     = 11.9480;
-  
+
 */
 
   // how much matter are we traversing in cm
 
-  Double_t eff = 0.7; // 1.7 mm in Silicon  
+  Double_t eff = 0.7; // 1.7 mm in Silicon
+
+
+  // one measurement in 1 cm
   Double_t x = 1; // in cm
-  
-  Double_t x2 = 0.02; // in cm
-  
 
-  cout<<beta<<","<<gamma<<","<<endl;
+  // or 100 measurements in 100 um
+  Double_t x2 = 0.01; // in cm
 
-  Double_t chi = Chi(beta, gamma, charge, x, A, Z, rho); 
-  Double_t DeltaP = deltaP(beta, gamma, charge, x, A, Z, rho, I, c0, a, m, x0, x1); 
+  nhits = int(x/x2);
+
+  //cout<<nhits<<endl;
+  //cout<<beta<<","<<gamma<<","<<endl;
+
+  Double_t chi = Chi(beta, gamma, charge, x, A, Z, rho);
+  Double_t DeltaP = deltaP(beta, gamma, charge, x, A, Z, rho, I, c0, a, m, x0, x1);
 
 
-  Double_t chi2 = Chi(beta, gamma, charge, x2, A, Z, rho); 
-  Double_t DeltaP2 = deltaP(beta, gamma, charge, x2, A, Z, rho, I, c0, a, m, x0, x1); 
-
-
+  Double_t chi2 = Chi(beta, gamma, charge, x2, A, Z, rho);
+  Double_t DeltaP2 = deltaP(beta, gamma, charge, x2, A, Z, rho, I, c0, a, m, x0, x1);
 
   // formula (33.12) from http://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
 
@@ -217,19 +231,19 @@ Index =   14:  silicon (Si)
 
   TF1 *flangaus = new TF1("langaus",langaufun,0., 20.,4);
   Double_t sv[4];
-  sv[0]=chi; 
-  sv[1]=DeltaP; 
-  sv[2]=1.0; 
+  sv[0]=chi;
+  sv[1]=DeltaP;
+  sv[2]=1.0;
 
 
   // additional gaussian smearing parameter
-  
+
   // first pixel layer: sigma = 0.7
   // >= second pixel layer: sigma = 0.4
-  
+
   //sv[3]=0.7;
   sv[3]=0.4;
-  
+
   flangaus->SetParameters(sv);
   flangaus->SetParNames("Width","MP","Area","GSigma");
 
@@ -237,20 +251,70 @@ Index =   14:  silicon (Si)
 
   // event loop
   //Double_t sigma = 0.15;
-  Double_t sigma = 0.15;
-  
+  Double_t sigma = 0.4;  // 0.4 MeV/cm
+
   for (int i=0; i<NEVENTS; i++)
   {
-     
-     Double_t eloss1 = gRandom->Landau(DeltaP,chi); // this is the total energy loss in MeV
+
+     Double_t eloss = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
+     Double_t eloss2 = gRandom->Gaus(eloss,sigma*x2);
+
      //Double_t eloss1 = gRandom->Uniform();
 
-     hEnergyLoss->Fill(eloss1);
+     hEnergyLoss->Fill(eloss/x2);
+     hEnergyLoss2->Fill(eloss2/x2);
 
-     Double_t eloss2 = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
+     std::vector<Double_t> elosses;
+     std::vector<Double_t> elosses2;
+
+     for (int j=0; j<nhits; j++){
+
+       eloss = gRandom->Landau(DeltaP2,chi2);
+
+       // energy loss with gaussian smearing
+       eloss2 = gRandom->Gaus(eloss,sigma*x2);
+
+       elosses.push_back(eloss);
+       elosses2.push_back(eloss2);
+
+     }
+
+     // sort vector of energy losses from highest to lowest
+     //std::sort (elosses.begin(), elosses.end(), greater<Double_t>());
+     std::sort (elosses.begin(), elosses.end());
+     std::sort (elosses2.begin(), elosses2.end());
+
+     //cout << "--------------------------"<< endl;
+
+     /*
+     for (int j=0; j<nhits; j++){
+       cout<< elosses.at(j)<<" , "<< elosses2.at(j)<<endl;
+     }
+     */
+
+     Double_t fTruncFrac;
+
+     /*
+     fTruncFrac  = 0.1;
+     Double_t eloss_mean2 =  truncMean(elosses, fTruncFrac);
+     hEnergyLoss2->Fill(eloss_mean2/x2);
+
+     fTruncFrac  = 0.33;
+     Double_t eloss_mean3 =  truncMean(elosses, fTruncFrac);
+     hEnergyLoss3->Fill(eloss_mean3/x2);
+     */
+
+     fTruncFrac  = 0.5;
+     Double_t eloss_mean =  truncMean(elosses, fTruncFrac);
+     hEnergyLoss4->Fill(eloss_mean/x2);
+
+     Double_t eloss_mean2 =  truncMean(elosses2, fTruncFrac);
+     hEnergyLoss3->Fill(eloss_mean2/x2);
+
+     //Double_t eloss2 = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
      //Double_t eloss = gRandom->Uniform();
 
-     hEnergyLoss2->Fill(eloss2/x2);
+     //hEnergyLoss2->Fill(eloss2/x2);
 
      //Double_t eloss2 = flangaus->GetRandom(); // this is the total energy loss in MeV
      //hEnergyLoss2->Fill(eloss2);
@@ -258,33 +322,33 @@ Index =   14:  silicon (Si)
      //cout<<eloss<<endl;
 
      //Double_t eloss3 = gRandom->Gaus(eloss1,sigma*eloss1);
-     Double_t eloss3 = gRandom->Gaus(eloss1,0.01);
-     
-     hEnergyLoss3->Fill(eloss3);
+      // Double_t eloss3 = gRandom->Gaus(eloss1,0.01);
+
+     //hEnergyLoss3->Fill(eloss3);
 
      //Double_t eloss4 = gRandom->Gaus(eloss2,0.4);
-     Double_t eloss4 = gRandom->Gaus(eloss2,0.01);
-     
+     //Double_t eloss4 = gRandom->Gaus(eloss2,0.01);
+
      //Double_t eloss4 = gRandom->Gaus(eloss2,sigma*eloss2);
-     hEnergyLoss4->Fill(eloss4/x2);
+     //hEnergyLoss4->Fill(eloss4/x2);
 
   }
-  
-  hEnergyLoss->SetLineColor(kRed);
+
+
+  hEnergyLoss4->SetLineColor(kRed);
+  hEnergyLoss4->SetLineWidth(2);
+  hEnergyLoss4->DrawNormalized();
+
+  hEnergyLoss3->SetLineWidth(2);
+  hEnergyLoss3->DrawNormalized("same");
+
   hEnergyLoss->SetLineWidth(2);
-  hEnergyLoss->DrawNormalized();
+  hEnergyLoss->SetLineColor(kOrange+2);
+  hEnergyLoss->DrawNormalized("same");
 
   hEnergyLoss2->SetLineWidth(2);
+  hEnergyLoss2->SetLineColor(kGreen+2);
   hEnergyLoss2->DrawNormalized("same");
-
-    
-  hEnergyLoss3->SetLineWidth(2);
-  hEnergyLoss3->SetLineColor(kGreen+2);
-  hEnergyLoss3->DrawNormalized("same");
-    
-  hEnergyLoss4->SetLineWidth(2);
-  hEnergyLoss4->SetLineColor(kOrange+2);
-  hEnergyLoss4->DrawNormalized("same");
 
 
   //hEnergyLoss->Draw();
