@@ -70,7 +70,7 @@ Double_t deltaf(double c0, double a, double m, double x0, double x1, double beta
    Double_t x= TMath::Log10(beta*gamma);
    Double_t delta = 0.;
 
-   //cout<<x<<","<<x0<<","<<x1<<","<<endl;
+   cout<<x<<","<<x0<<","<<x1<<","<<endl;
 
    if (x < x0)
        delta = 0.;
@@ -101,9 +101,12 @@ Double_t deltaP(double beta, double gamma, double charge, double x, double A, do
   Double_t Wmax = 2*me*beta*beta*gamma*gamma; // this is not valid for electrons
   Double_t delta = deltaf(c0, a, m, x0, x1, beta, gamma);
 
+
   //Double_t DeDx= chi*( 2*TMath::Log(Wmax/I) - 2*beta*beta - delta);
   Double_t DeDx = 2*chi*( TMath::Log(Wmax/I) - beta*beta - delta/2);
   Double_t dP = chi*( TMath::Log(Wmax/I) + TMath::Log(chi/I) + 0.2 - beta*beta - delta);
+
+        cout<<"    Wmax: "<<Wmax<<", Chi: "<<chi<<", delta: "<<delta<<", DeDx: "<<DeDx<<", DeltaP: "<<dP<<endl;
 
   return dP;
 }
@@ -122,10 +125,11 @@ Double_t truncMean(std::vector<Double_t> elosses, Double_t truncFrac)
 
 void dedx()
 {
-  TH1F *hEnergyLoss = new TH1F("energy_loss", "energy_loss", 500, 0.0, 10.0);
-  TH1F *hEnergyLoss2 = new TH1F("energy_loss2", "energy_loss2", 500, 0.0, 10.0);
-  TH1F *hEnergyLoss3 = new TH1F("energy_loss3", "energy_loss3", 500, 0.0, 10.0);
-  TH1F *hEnergyLoss4 = new TH1F("energy_loss4", "energy_loss4", 500, 0.0, 10.0);
+
+  TH1F *hEnergyLoss1  = new TH1F("energy_loss1", "energy_loss1", 500, 0.0, 5.0);
+  TH1F *hEnergyLoss2 = new TH1F("energy_loss2", "energy_loss2", 500, 0.0, 5.0);
+  TH1F *hEnergyLoss3 = new TH1F("energy_loss3", "energy_loss3", 500, 0.0, 5.0);
+  TH1F *hEnergyLoss4 = new TH1F("energy_loss4", "energy_loss4", 500, 0.0, 5.0);
 
   //mpv is the predicted <dEdx> from Bethe-Bloch
   Double_t mpv = 1.2;
@@ -145,9 +149,25 @@ void dedx()
   Double_t gamma = pvec.Gamma();
   mass = pvec.M();
 
-  // print particle properties
-  cout<<"E: "<<pvec.E()<<", P: "<<pvec.P()<<", Pt: "<<pvec.Pt()<<", M: "<<pvec.M()<<", Beta: "<< pvec.Beta()<<", Gamma: "<<pvec.Gamma() <<", Charge: "<<charge<<endl;
+  TLorentzVector pvec2;
+  //calculate mpv energy loss for pion in Silicon
+  //Double_t mass = 0.139570; //139 MeV
+  Double_t mass2 = 100; //139 MeV
 
+  Double_t energy2 = 50.+mass2;
+  Double_t p2 = TMath::Sqrt(energy2*energy2 - mass2*mass2);
+  Double_t charge2 = 1;
+
+  pvec2.SetPtEtaPhiM(p2,0.,0.,mass2);
+  Double_t beta2 = pvec2.Beta();
+  Double_t gamma2 = pvec2.Gamma();
+  mass2 = pvec2.M();
+
+
+  // print particle properties
+   cout<<"E: "<<pvec.E()<<", P: "<<pvec.P()<<", Pt: "<<pvec.Pt()<<", M: "<<pvec.M()<<", Beta: "<< pvec.Beta()<<", Gamma: "<<pvec.Gamma() <<", Charge: "<<charge<<endl;
+  // print particle properties
+   cout<<"E2: "<<pvec2.E()<<", P2: "<<pvec2.P()<<", Pt2: "<<pvec2.Pt()<<", M2: "<<pvec2.M()<<", Beta2: "<< pvec2.Beta()<<", Gamma2: "<<pvec2.Gamma() <<", Charge2: "<<charge2<<endl;
 
 /*
 Index =   14:  silicon (Si)
@@ -204,40 +224,39 @@ Index =   14:  silicon (Si)
 
 
   // one measurement in 1 cm
-  Double_t x = 1; // in cm
+  Double_t x = 0.1; // in cm
 
   // or 100 measurements in 100 um
   Double_t x2 = 0.01; // in cm
 
-  nhits = int(x/x2);
+  int nhits = int(x/x2);
 
   //cout<<nhits<<endl;
   //cout<<beta<<","<<gamma<<","<<endl;
 
-  Double_t chi = Chi(beta, gamma, charge, x, A, Z, rho);
-  Double_t DeltaP = deltaP(beta, gamma, charge, x, A, Z, rho, I, c0, a, m, x0, x1);
+  Double_t chi = Chi(beta, gamma, charge, x2, A, Z, rho);
+  Double_t DeltaP = deltaP(beta, gamma, charge, x2, A, Z, rho, I, c0, a, m, x0, x1);
 
+  float dx = x2;
+  cout<<"Nhits: "<<nhits<<", dx: "<<dx<<", Charge: "<<charge<<", Beta: "<< beta<<", Gamma: "<<gamma<<endl;
 
-  Double_t chi2 = Chi(beta, gamma, charge, x2, A, Z, rho);
-  Double_t DeltaP2 = deltaP(beta, gamma, charge, x2, A, Z, rho, I, c0, a, m, x0, x1);
+  Double_t chi2 = Chi(beta2, gamma2, charge2, x2, A, Z, rho);
+  Double_t DeltaP2 = deltaP(beta2, gamma2, charge2, x2, A, Z, rho, I, c0, a, m, x0, x1);
 
   // formula (33.12) from http://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
+  // x = 7.405e+00;
+  // beta = 9.903e-01;
+  // gamma =  7.199e+00;
+  // charge = 1.000e+00;
 
-  //x = 7.405e+00;
-  //beta = 9.903e-01;
-  //gamma =  7.199e+00;
-  //charge = 1.000e+00;
-  //cout<<"Wmax: "<<Wmax<<", Chi: "<<chi<<", delta: "<<delta<<", DeDx: "<<DeDx<<", DeltaP: "<<DeltaP<<endl;
-
+  /*
   TF1 *flangaus = new TF1("langaus",langaufun,0., 20.,4);
   Double_t sv[4];
   sv[0]=chi;
   sv[1]=DeltaP;
   sv[2]=1.0;
 
-
   // additional gaussian smearing parameter
-
   // first pixel layer: sigma = 0.7
   // >= second pixel layer: sigma = 0.4
 
@@ -248,6 +267,8 @@ Index =   14:  silicon (Si)
   flangaus->SetParNames("Width","MP","Area","GSigma");
 
   //flangaus->Draw();
+  */
+
 
   // event loop
   //Double_t sigma = 0.15;
@@ -256,26 +277,34 @@ Index =   14:  silicon (Si)
   for (int i=0; i<NEVENTS; i++)
   {
 
-     Double_t eloss = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
-     Double_t eloss2 = gRandom->Gaus(eloss,sigma*x2);
+     //Double_t eloss = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
+     //Double_t eloss2 = gRandom->Gaus(eloss,sigma*x2);
 
      //Double_t eloss1 = gRandom->Uniform();
 
-     hEnergyLoss->Fill(eloss/x2);
-     hEnergyLoss2->Fill(eloss2/x2);
+     //hEnergyLoss->Fill(eloss/x2);
+     //hEnergyLoss2->Fill(eloss2/x2);
 
      std::vector<Double_t> elosses;
+     std::vector<Double_t> elosses_smear;
      std::vector<Double_t> elosses2;
+     std::vector<Double_t> elosses2_smear;
 
      for (int j=0; j<nhits; j++){
 
-       eloss = gRandom->Landau(DeltaP2,chi2);
+       Double_t eloss         = gRandom->Landau(DeltaP,chi);
+       Double_t eloss_smear   = gRandom->Gaus(eloss,sigma*x2);
 
-       // energy loss with gaussian smearing
-       eloss2 = gRandom->Gaus(eloss,sigma*x2);
+       Double_t eloss2        = gRandom->Landau(DeltaP2,chi2);
+       Double_t eloss2_smear  = gRandom->Gaus(eloss2,sigma*x2);
+
+       //cout<<eloss<<","<<eloss2<<endl;
 
        elosses.push_back(eloss);
        elosses2.push_back(eloss2);
+
+       elosses_smear.push_back(eloss_smear);
+       elosses2_smear.push_back(eloss2_smear);
 
      }
 
@@ -283,6 +312,10 @@ Index =   14:  silicon (Si)
      //std::sort (elosses.begin(), elosses.end(), greater<Double_t>());
      std::sort (elosses.begin(), elosses.end());
      std::sort (elosses2.begin(), elosses2.end());
+
+     std::sort (elosses_smear.begin(), elosses_smear.end());
+     std::sort (elosses2_smear.begin(), elosses2_smear.end());
+
 
      //cout << "--------------------------"<< endl;
 
@@ -305,11 +338,20 @@ Index =   14:  silicon (Si)
      */
 
      fTruncFrac  = 0.5;
+
      Double_t eloss_mean =  truncMean(elosses, fTruncFrac);
-     hEnergyLoss4->Fill(eloss_mean/x2);
+     hEnergyLoss1->Fill(eloss_mean/x2);
 
      Double_t eloss_mean2 =  truncMean(elosses2, fTruncFrac);
-     hEnergyLoss3->Fill(eloss_mean2/x2);
+     hEnergyLoss2->Fill(eloss_mean2/x2);
+
+     Double_t eloss_smear_mean =  truncMean(elosses_smear, fTruncFrac);
+     hEnergyLoss3->Fill(eloss_smear_mean/x2);
+
+     Double_t eloss_smear_mean2 =  truncMean(elosses2_smear, fTruncFrac);
+     hEnergyLoss4->Fill(eloss_smear_mean2/x2);
+
+
 
      //Double_t eloss2 = gRandom->Landau(DeltaP2,chi2); // this is the total energy loss in MeV
      //Double_t eloss = gRandom->Uniform();
@@ -334,21 +376,23 @@ Index =   14:  silicon (Si)
 
   }
 
+  hEnergyLoss1->SetLineWidth(2);
+  hEnergyLoss1->SetLineColor(kOrange+2);
+  hEnergyLoss1->DrawNormalized("");
 
-  hEnergyLoss4->SetLineColor(kRed);
-  hEnergyLoss4->SetLineWidth(2);
-  hEnergyLoss4->DrawNormalized();
-
-  hEnergyLoss3->SetLineWidth(2);
-  hEnergyLoss3->DrawNormalized("same");
-
-  hEnergyLoss->SetLineWidth(2);
-  hEnergyLoss->SetLineColor(kOrange+2);
-  hEnergyLoss->DrawNormalized("same");
 
   hEnergyLoss2->SetLineWidth(2);
   hEnergyLoss2->SetLineColor(kGreen+2);
   hEnergyLoss2->DrawNormalized("same");
+
+
+  hEnergyLoss3->SetLineWidth(2);
+  hEnergyLoss3->DrawNormalized("same");
+
+
+  hEnergyLoss4->SetLineColor(kRed);
+  hEnergyLoss4->SetLineWidth(2);
+  hEnergyLoss4->DrawNormalized("same");
 
 
   //hEnergyLoss->Draw();
