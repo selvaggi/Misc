@@ -13,7 +13,7 @@ import multiprocessing as mp
 from collections import OrderedDict
 
 #_______________________________________________________________________________
-def epidemics_simulation(r, gamma, S0, I0):
+def epidemics_simulation(r, gamma, d, S0, I0):
 
     N0 = S0 + I0
 
@@ -39,12 +39,16 @@ def epidemics_simulation(r, gamma, S0, I0):
     S = OrderedDict()
     I = OrderedDict()
     R = OrderedDict()
+    RR = OrderedDict()
+    D = OrderedDict()
     lmbd = OrderedDict()
 
     I[0]=I0
     S[0]=S0
-    R[0]=R0
+    R[0]=0
+    RR[0]=0
     N[0]=N0
+    D[0] = 0
     lmbd[0] = lambda0
 
     print "{0:>7s} {1:>10s} {2:>10s} {3:>10s} {4:>13s}".format("time (days)", "S(t)", "I(t)", "R(t)", "lambda(t)")
@@ -52,6 +56,9 @@ def epidemics_simulation(r, gamma, S0, I0):
 
 
     ndays_tot = 9999
+
+    tstar = 0
+    Istar = -999
 
     for t in range(1, ndays_tot):
 
@@ -61,6 +68,14 @@ def epidemics_simulation(r, gamma, S0, I0):
         R[t] = R[t-1] + gamma * I[t-1]
         N[t] = S[t] + I[t] + R[t]
 
+        D[t] = d*R[t]
+        RR[t] = R[t] - D[t]
+
+        ## compute time when max infected
+        if I[t] > Istar:
+            Istar = I[t]
+            tstar = t
+
         if I[t] < 1: break
         #print t, S[t], I[t], R[t], N[t]
         print "{0:5.0f} {1:17.2e} {2:10.2e} {3:10.2e} {4:11.2e}  ".format(t, S[t], I[t], R[t], lmbd[t])
@@ -69,12 +84,15 @@ def epidemics_simulation(r, gamma, S0, I0):
 
     nd = S.keys()
 
-    ax.plot(nd, S.values(), label='S', linewidth=2)
-    ax.plot(nd, I.values(), label='I', linewidth=2)
-    ax.plot(nd, R.values(), label='R', linewidth=2)
+    ax.plot(nd, S.values(), label='S(t)', linewidth=2, color='blue')
+    ax.plot(nd, I.values(), label='I(t)', linewidth=2, color='orange')
+    ax.plot(nd, RR.values(), label='R(t)', linewidth=2, color='green')
+    ax.plot(nd, D.values(), label='D(t)', linewidth=2, color='red')
+
+    ax.axvline(x=tstar, color='black', linestyle='--')
 
     ax.set_title(r'$\gamma = {:.2f},    r = c \chi = {:.2f},     R_0 = r/\gamma = {:.2f} $'.format(gamma,r,R0))
-    ax.legend(loc='upper left')
+    ax.legend(loc='lower center')
     ax.set_ylabel('N')
     ax.set_xlabel('t (days)')
     ax.set_xlim(xmin=nd[0], xmax=nd[-1])
@@ -82,6 +100,8 @@ def epidemics_simulation(r, gamma, S0, I0):
 
     ax.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
     ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3)
+
+    ax.text(0.5, 0.5, r'$t_* = {}$'.format(tstar) + ' days', horizontalalignment='center',verticalalignment='center', transform=ax.transAxes)
 
     fig.tight_layout()
     #fig.show()
@@ -116,4 +136,7 @@ r = 1/7.5
 S0 = 6.e9 -1
 I0 = 1 ## initial infected
 
-epidemics_simulation(r, gamma, S0, I0)
+## death rate (not an actual parameter for the dynamics)
+d = 0.05
+
+epidemics_simulation(r, gamma, d, S0, I0)
