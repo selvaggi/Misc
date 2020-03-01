@@ -41,6 +41,7 @@ def epidemics_simulation(r, gamma, d, S0, I0):
     R = OrderedDict()
     RR = OrderedDict()
     D = OrderedDict()
+    T = OrderedDict()
     lmbd = OrderedDict()
 
     I[0]=I0
@@ -49,6 +50,7 @@ def epidemics_simulation(r, gamma, d, S0, I0):
     RR[0]=0
     N[0]=N0
     D[0] = 0
+    T[0] = I[0] + R[0]
     lmbd[0] = lambda0
 
     print "{0:>7s} {1:>10s} {2:>10s} {3:>10s} {4:>13s}".format("time (days)", "S(t)", "I(t)", "R(t)", "lambda(t)")
@@ -67,6 +69,7 @@ def epidemics_simulation(r, gamma, d, S0, I0):
         I[t] = I[t-1] + lmbd[t] * S[t-1] - gamma * I[t-1]
         R[t] = R[t-1] + gamma * I[t-1]
         N[t] = S[t] + I[t] + R[t]
+        T[t] = I[t] + R[t]
 
         D[t] = d*R[t]
         RR[t] = R[t] - D[t]
@@ -87,21 +90,23 @@ def epidemics_simulation(r, gamma, d, S0, I0):
     ax.plot(nd, S.values(), label='S(t)', linewidth=2, color='blue')
     ax.plot(nd, I.values(), label='I(t)', linewidth=2, color='orange')
     ax.plot(nd, RR.values(), label='R(t)', linewidth=2, color='green')
+    ax.plot(nd, T.values(), label='I(t) + R(t)', linewidth=2, color='purple')
     ax.plot(nd, D.values(), label='D(t)', linewidth=2, color='red')
 
     ax.axvline(x=tstar, color='black', linestyle='--')
 
-    ax.set_title(r'$\gamma = {:.2f},    r = c \chi = {:.2f},     R_0 = r/\gamma = {:.2f} $'.format(gamma,r,R0))
+    ax.set_title(r'$\gamma = {:.2f},    r = c \chi = {:.2f},     R_0 = r/\gamma = {:.2f},  t_* = {} \mathrm{{\,days}}$'.format(gamma,r,R0,tstar))
     ax.legend(loc='lower center')
     ax.set_ylabel('N')
     ax.set_xlabel('t (days)')
     ax.set_xlim(xmin=nd[0], xmax=nd[-1])
+    ax.set_ylim(ymin=1, ymax=10*S0)
     ax.set_yscale('log')
 
     ax.grid(True, 'major', 'y', ls='--', lw=.5, c='k', alpha=.3)
     ax.grid(True, 'major', 'x', ls='--', lw=.5, c='k', alpha=.3)
-
-    ax.text(0.5, 0.5, r'$t_* = {}$'.format(tstar) + ' days', horizontalalignment='center',verticalalignment='center', transform=ax.transAxes)
+    ax.legend(loc='best')
+    #ax.text(0.6, 0.2, r'$t_* = {}$'.format(tstar) + ' days', horizontalalignment='center',verticalalignment='center', transform=ax.transAxes)
 
     fig.tight_layout()
     #fig.show()
@@ -115,28 +120,22 @@ def epidemics_simulation(r, gamma, d, S0, I0):
 #_______________________________________________________________________________
 
 # average time spent as infected (in days)
-tau = 15.
+tau = 4.
 
 # removal rate = number of death + recover per unit time (time in days)
 gamma = 1/tau
 
-## c = number of contacts per unit time (time in days)
-c = 20
+#tau_r
+tau_r = 2.
 
-### chi = effectiveness of contact
-chi = 0.01
-
-# rate of infections per unit time
-r = c* chi
-
-r = 1/7.5
+r = 1/tau_r
 
 ### initial conditions
 
 S0 = 6.e9 -1
-I0 = 1 ## initial infected
+I0 = 10 ## initial infected
 
 ## death rate (not an actual parameter for the dynamics)
-d = 0.05
+d = 0.01
 
 epidemics_simulation(r, gamma, d, S0, I0)
