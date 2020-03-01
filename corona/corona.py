@@ -51,7 +51,7 @@ def epidemics_simulation(r, gamma, S0, I0):
     print"--------------------------------------------------------------------------------------------------------------"
 
 
-    ndays_tot = 999999999
+    ndays_tot = 9999
 
     for t in range(1, ndays_tot):
 
@@ -95,7 +95,7 @@ def epidemics_simulation(r, gamma, S0, I0):
 #_______________________________________________________________________________
 
 # average time spent as infected (in days)
-tau = 30.
+tau = 15.
 
 # removal rate = number of death + recover per unit time (time in days)
 gamma = 1/tau
@@ -109,11 +109,11 @@ chi = 0.01
 # rate of infections per unit time
 r = c* chi
 
-r = 1/15.
+r = 1/7.5
 
 ### initial conditions
 
-S0 = 6.e7 -1
+S0 = 6.e9 -1
 I0 = 1 ## initial infected
 
 epidemics_simulation(r, gamma, S0, I0)
