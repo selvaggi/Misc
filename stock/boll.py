@@ -215,4 +215,5 @@ stocks = [
 
 
 for coin in coins1:
+    #plot_security(coin, 20, 350)
     plot_security(coin, 20, 350)
