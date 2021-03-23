@@ -3,31 +3,72 @@ import numpy as np
 import pandas as pd
 
 ## (initial price, number of coins)
-coin_price = dict()
-coin_price['STMX']=(3033.31,52466.838)
-coin_price['SPI']=(3386.88,19.511)
-coin_price['CFi']=(3837.53,92.779)
-coin_price['UMX']=(3800,1355.622)
-coin_price['CHAIN']=(3800,6829.825)
+coins = dict()
 
-for key, val in coin_price.items():
+coins['UMX']={
+    'ncoins':1355.622,
+    'value':3800,
+    'marketcap':20e6,
+    'nepochs':10,
+}
 
-    if key != 'UMX': continue
+coins['STMX']={
+    'ncoins':52466.838,
+    'value':3033.31,
+    'marketcap':475e6,
+    'nepochs':5,
+}
+
+coins['SPI']={
+    'ncoins':19.511,
+    'value':3386.88,
+    'marketcap':166e6,
+    'nepochs':10,
+}
+
+coins['CFI']={
+    'ncoins':92.779,
+    'value':3837,
+    'marketcap':40e6,
+    'nepochs':10,
+}
+coins['CHAIN']={
+    'ncoins':6830,
+    'value':3800,
+    'marketcap':100e6,
+    'nepochs':10,
+}
+
+coins['ORAI']={
+    'ncoins':71.5,
+    'value':3445,
+    'marketcap':40e6,
+    'nepochs':10,
+}
+
+
+
+
+
+
+for key, val in coins.items():
+
+    if key != 'CFI': continue
 
     print('---- {} coin ----'.format(key))
 
 
-    amount_of_coins = val[1]
-    price_per_coin = val[0]/val[1]
+    amount_of_coins = val['ncoins']
+    price_per_coin = val['value']/val['ncoins']
     portfolio = amount_of_coins*price_per_coin
     print('price/coin: {:.2f} , {:.2f}  coins, {:.0f} $ '.format(price_per_coin, amount_of_coins, portfolio))
     print('')
 
     #rate = 2  ## double every epoch
-    n_epochs = 10
+    n_epochs = val['nepochs']
     stop_epoch = n_epochs
 
-    marketcap = 20e6
+    marketcap = val['marketcap']
     total_removed_coins = 0
     total_withdrawn = 0
     total_fraction = 0
